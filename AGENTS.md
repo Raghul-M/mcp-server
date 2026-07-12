@@ -67,8 +67,9 @@ kubeflow_mcp/                    # Main Python package
   `CLIENT_TOOL_ANNOTATIONS`, instruction sections, and optional resources.
   `core/server.py` loads clients dynamically (`trainer`, later `optimizer` / `hub`).
 - **Workflow phases**: Plan → Discover → Train → Monitor → Lifecycle / Platform / Health.
-- **Confirm gate**: Mutating tools preview when `confirmed=False` and execute only with
-  `confirmed=True`. Do not weaken or bypass this pattern.
+- **Confirm gate**: New mutating tools must preview when `confirmed=False` and execute only with
+  `confirmed=True`; `update_training_job` is a legacy exception that currently mutates immediately.
+  Do not copy, weaken, or broaden that exception.
 - **Personas**: `readonly`, `data-scientist`, `ml-engineer`, `platform-admin`
   (see `core/policy.py`). New tools must be added to the correct persona allowlists.
 - **Tool modes**: `full`, `progressive`, and `semantic` (see `core/dynamic_tools.py`).
