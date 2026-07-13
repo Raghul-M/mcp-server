@@ -15,7 +15,7 @@
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-.PHONY: help uv install-dev verify format test-python test test-cov clean inspector
+.PHONY: help uv install-dev verify format test-python test test-cov clean inspector changelog
 
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 
@@ -78,6 +78,31 @@ else
 	@echo ""
 	@npx @modelcontextprotocol/inspector --transport http --server-url $(or $(SERVER_URL),http://127.0.0.1:8000/mcp)
 endif
+
+##@ Release
+
+# Generate or prepend a changelog entry with git-cliff (Docker).
+# Usage: make changelog VERSION=0.1.0
+# Optional: GITHUB_TOKEN=... for contributor attribution / New Contributors.
+changelog: ## Generate changelog. Usage: make changelog VERSION=X.Y.Z
+	@if [ -z "$(VERSION)" ] || ! echo "$(VERSION)" | grep -E -q '^[0-9]+\.[0-9]+\.[0-9]+$$'; then \
+	  echo "Error: VERSION must be set in X.Y.Z format. Usage: make changelog VERSION=0.1.0"; \
+	  exit 1; \
+	fi
+	@MAJOR_MINOR=$$(echo "$(VERSION)" | cut -d. -f1,2); \
+	CHANGELOG_PATH="CHANGELOG/CHANGELOG-$$MAJOR_MINOR.md"; \
+	mkdir -p CHANGELOG; \
+	CLIFF_CMD="docker run --rm -u $$(id -u):$$(id -g) -v $(PROJECT_DIR):/app"; \
+	if [ -n "$(GITHUB_TOKEN)" ]; then \
+	  CLIFF_CMD="$$CLIFF_CMD -e GITHUB_TOKEN=$(GITHUB_TOKEN)"; \
+	fi; \
+	CLIFF_CMD="$$CLIFF_CMD -w /app ghcr.io/orhun/git-cliff/git-cliff:latest --unreleased --tag $(VERSION)"; \
+	if [ -f "$$CHANGELOG_PATH" ]; then \
+	  $$CLIFF_CMD --prepend "$$CHANGELOG_PATH"; \
+	else \
+	  $$CLIFF_CMD -o "$$CHANGELOG_PATH"; \
+	fi; \
+	echo "Changelog written to $$CHANGELOG_PATH"
 
 ##@ Cleanup
 
