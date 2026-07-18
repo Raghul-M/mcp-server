@@ -51,6 +51,10 @@ test-python: ## Run unit tests
 	@uv sync --all-extras --group dev
 	@uv run pytest --cov=kubeflow_mcp --cov-report=$(or $(report),term)
 
+test-scripts: ## Run GitHub Actions script tests
+	@uv sync --all-extras --group dev
+	@uv run pytest .github/scripts/test_scripts.py -v
+
 test: ## Run all tests (unit + integration)
 	@uv sync --all-extras --group dev
 	@uv run pytest tests/ kubeflow_mcp/ -v --tb=short
