@@ -63,9 +63,10 @@ kubeflow_mcp/                    # Main Python package
 
 ## Architecture Notes
 
-- **Plugin clients**: Each client module exports `TOOLS`, `CLIENT_TOOL_DESCRIPTIONS`,
-  `CLIENT_TOOL_ANNOTATIONS`, instruction sections, and optional resources.
-  `core/server.py` loads clients dynamically (`trainer`, later `optimizer` / `hub`).
+- **Plugin clients**: Every client module exports `TOOLS`. The implemented `trainer` client also
+ exports `CLIENT_TOOL_DESCRIPTIONS`, `CLIENT_TOOL_ANNOTATIONS`, `INSTRUCTION_SECTIONS`,
+ and `CLIENT_RESOURCES`; `optimizer` and `hub` are currently stubs. `core/server.py`
+ loads selected clients dynamically.
 - **Workflow phases**: Plan → Discover → Train → Monitor → Lifecycle / Platform / Health.
 - **Confirm gate**: New mutating tools must preview when `confirmed=False` and execute only with
   `confirmed=True`; `update_training_job` is a legacy exception that currently mutates immediately.
@@ -133,7 +134,7 @@ uv run ruff format path/to/file.py
 ```bash
 uv run pre-commit install
 uv run pre-commit run --all-files
-make inspector                # MCP Inspector (stdio)
+make inspector                 # MCP Inspector (TRANSPORT=stdio|http|sse, default stdio)
 ```
 
 ## Development Workflow for AI Agents
