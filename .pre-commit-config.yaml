@@ -15,4 +15,3 @@ repos:
         args: [--fix]
       # Format after fixes
       - id: ruff-format
-
