@@ -98,7 +98,7 @@ changelog: ## Generate changelog. Usage: make changelog VERSION=X.Y.Z
 	mkdir -p CHANGELOG; \
 	CLIFF_CMD="docker run --rm -u $$(id -u):$$(id -g) -v $(PROJECT_DIR):/app"; \
 	if [ -n "$(GITHUB_TOKEN)" ]; then \
-	  CLIFF_CMD="$$CLIFF_CMD -e GITHUB_TOKEN=$(GITHUB_TOKEN)"; \
+	  CLIFF_CMD="$$CLIFF_CMD -e GITHUB_TOKEN"; \
 	fi; \
 	CLIFF_CMD="$$CLIFF_CMD -w /app ghcr.io/orhun/git-cliff/git-cliff:latest --unreleased --tag $(VERSION)"; \
 	# Prepend only when a prior release heading exists; stubs/empty files use -o
