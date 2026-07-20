@@ -101,7 +101,7 @@ changelog: ## Generate changelog. Usage: make changelog VERSION=X.Y.Z
 	if [ -n "$(GITHUB_TOKEN)" ]; then \
 	  CLIFF_CMD="$$CLIFF_CMD -e GITHUB_TOKEN"; \
 	fi; \
-	CLIFF_CMD="$$CLIFF_CMD -w /app ghcr.io/orhun/git-cliff/git-cliff:latest --unreleased --tag $(VERSION)"; \
+	CLIFF_CMD="$$CLIFF_CMD -w /app ghcr.io/orhun/git-cliff/git-cliff:latest $$CLIFF_SCOPE --tag $(VERSION)"; \
 	# Prepend only when a prior release heading exists; stubs/empty files use -o
 	# so the first entry is not written above a '# Changelog' intro.
 	if [ -f "$$CHANGELOG_PATH" ] && grep -qE '^# \[[0-9]+\.[0-9]+\.[0-9]+\]' "$$CHANGELOG_PATH"; then \
