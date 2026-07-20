@@ -93,6 +93,7 @@ changelog: ## Generate changelog. Usage: make changelog VERSION=X.Y.Z
 	  echo "Error: VERSION must be set in X.Y.Z format. Usage: make changelog VERSION=0.1.0"; \
 	  exit 1; \
 	fi
+	git fetch upstream --tags --prune;
 	@MAJOR_MINOR=$$(echo "$(VERSION)" | cut -d. -f1,2); \
 	CHANGELOG_PATH="CHANGELOG/CHANGELOG-$$MAJOR_MINOR.md"; \
 	mkdir -p CHANGELOG; \
