@@ -15,7 +15,7 @@
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-.PHONY: help uv install-dev verify format test-python test test-cov clean inspector changelog
+.PHONY: help uv install-dev verify format test-python test-scripts test test-cov clean inspector changelog
 
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 
@@ -87,29 +87,53 @@ endif
 
 # Generate or prepend a changelog entry with git-cliff (Docker).
 # Usage: make changelog VERSION=0.1.0
+# Dry-run (stdout only): make changelog VERSION=0.1.0 DRY_RUN=1
 # Optional: GITHUB_TOKEN=... for contributor attribution / New Contributors.
-changelog: ## Generate changelog. Usage: make changelog VERSION=X.Y.Z
+# Scope follows kubeflow/sdk: prefer PREV_TAG..upstream/release-X.Y, else --unreleased.
+changelog: ## Generate changelog. Usage: make changelog VERSION=X.Y.Z [DRY_RUN=1]
 	@if [ -z "$(VERSION)" ] || ! echo "$(VERSION)" | grep -E -q '^[0-9]+\.[0-9]+\.[0-9]+$$'; then \
 	  echo "Error: VERSION must be set in X.Y.Z format. Usage: make changelog VERSION=0.1.0"; \
 	  exit 1; \
 	fi
-	git fetch upstream --tags --prune;
+	@git fetch upstream --tags --prune
 	@MAJOR_MINOR=$$(echo "$(VERSION)" | cut -d. -f1,2); \
 	CHANGELOG_PATH="CHANGELOG/CHANGELOG-$$MAJOR_MINOR.md"; \
+	RELEASE_BRANCH="release-$$MAJOR_MINOR"; \
+	RELEASE_SHA=$$(git rev-parse --verify --quiet "refs/remotes/upstream/$$RELEASE_BRANCH"); \
+	if [ -n "$$RELEASE_SHA" ]; then \
+	  PREV_TAG=$$(git describe --tags --abbrev=0 --match '[0-9]*' --exclude '*rc*' "$$RELEASE_SHA" 2>/dev/null || true); \
+	  if [ -n "$$PREV_TAG" ]; then \
+	    CLIFF_SCOPE="$$PREV_TAG..$$RELEASE_SHA"; \
+	    echo "Generating changelog for $(VERSION) (range: $$PREV_TAG..$$RELEASE_BRANCH @ $$RELEASE_SHA)"; \
+	  else \
+	    CLIFF_SCOPE="--unreleased"; \
+	    echo "Generating changelog for $(VERSION) (no prior tag on $$RELEASE_BRANCH; using --unreleased)"; \
+	  fi; \
+	elif [ ! -f "$$CHANGELOG_PATH" ]; then \
+	  CLIFF_SCOPE="--unreleased"; \
+	  echo "Generating changelog for $(VERSION) (new release line $$MAJOR_MINOR, branch $$RELEASE_BRANCH not created yet; using --unreleased)"; \
+	else \
+	  echo "Error: branch $$RELEASE_BRANCH not found locally or on upstream, but $$CHANGELOG_PATH exists. Run: git fetch upstream $$RELEASE_BRANCH"; \
+	  exit 1; \
+	fi; \
 	mkdir -p CHANGELOG; \
 	CLIFF_CMD="docker run --rm -u $$(id -u):$$(id -g) -v $(PROJECT_DIR):/app"; \
 	if [ -n "$(GITHUB_TOKEN)" ]; then \
-	  CLIFF_CMD="$$CLIFF_CMD -e GITHUB_TOKEN"; \
+	  CLIFF_CMD="$$CLIFF_CMD -e GITHUB_TOKEN=$(GITHUB_TOKEN)"; \
 	fi; \
 	CLIFF_CMD="$$CLIFF_CMD -w /app ghcr.io/orhun/git-cliff/git-cliff:latest $$CLIFF_SCOPE --tag $(VERSION)"; \
 	# Prepend only when a prior release heading exists; stubs/empty files use -o
 	# so the first entry is not written above a '# Changelog' intro.
-	if [ -f "$$CHANGELOG_PATH" ] && grep -qE '^# \[[0-9]+\.[0-9]+\.[0-9]+\]' "$$CHANGELOG_PATH"; then \
+	if [ "$(DRY_RUN)" = "1" ]; then \
+	  echo "DRY_RUN=1: printing changelog to stdout (not writing $$CHANGELOG_PATH)"; \
+	  $$CLIFF_CMD; \
+	elif [ -f "$$CHANGELOG_PATH" ] && grep -qE '^# \[[0-9]+\.[0-9]+\.[0-9]+\]' "$$CHANGELOG_PATH"; then \
 	  $$CLIFF_CMD --prepend "$$CHANGELOG_PATH"; \
+	  echo "Changelog written to $$CHANGELOG_PATH"; \
 	else \
 	  $$CLIFF_CMD -o "$$CHANGELOG_PATH"; \
-	fi; \
-	echo "Changelog written to $$CHANGELOG_PATH"
+	  echo "Changelog written to $$CHANGELOG_PATH"; \
+	fi
 
 ##@ Cleanup
 
